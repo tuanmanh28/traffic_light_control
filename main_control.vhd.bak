@@ -1,0 +1,87 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+ 
+entity main_control is
+generic(
+		-- thời gian đèn đỏ lane1 = n2_green + n2_yellow
+	n1_green:	integer range 0 to 9990;-- thời gian đèn xanh lane1
+	n1_yellow:	integer range 0 to 9;	-- thời gian đèn vàng lane1	
+		-- thời gian đèn đỏ lane2 = n1_green + n1_yellow
+	n2_green:	integer range 0 to 9990;-- thời gian đèn xanh lane2
+	n2_yellow:	integer range 0 to 9		-- thời gian đèn vàng lane2
+);
+port (	
+	clk_1s : in std_logic;
+	rst : in std_logic;
+	light_lane1: out std_logic_vector (2 downto 0) := "010"; -- red, green, yellow
+	light_lane2: out std_logic_vector (2 downto 0) := "100";
+	nume_lane1: out natural range 0 to 9999;
+	nume_lane2: out natural range 0 to 9999
+);
+end main_control;
+ 
+architecture Behavioral of main_control is
+	type contol is (lane1, lane2);
+	signal control: contol := lane1;
+	type light is (green, yellow);
+	signal light1: light := green;
+	signal light2: light;
+begin
+	process(clk_1s,rst)
+		variable count1 : natural range 0 to 9999 := n1_green;
+		variable count2 : natural range 0 to 9999 := n1_green + n1_yellow;
+	begin
+		nume_lane1 <= count1;
+		nume_lane2 <= count2;
+		if rst = '1' then
+			count1 := n1_green;
+			count2 := n1_green + n1_yellow;
+			light1 <= green;
+			control <= lane1;
+		else
+			if clk_1s'event and clk_1s = '1' then
+				count1 := count1 - 1;
+				count2 := count2 - 1;
+				if control = lane1 then
+					case light1 is
+						when green => 
+							if count1 = 0 then 
+								count1 := n1_yellow;
+								light_lane1 <= "001";
+								light1 <= yellow;
+							end if;
+						when yellow =>
+							if count1 = 0 then 
+								count1 := n2_green + n2_yellow;
+								count2 := n2_green;
+								light_lane1 <= "100";
+								light_lane2 <= "010";
+								light2 <= green;
+								control <= lane2; 
+							end if;
+					end case;		
+				else
+					case light2 is
+						when green => 
+							if count2 = 0 then 
+								count2 := n2_yellow;
+								light2 <= yellow;
+								light_lane2 <= "001";
+							end if;
+						when yellow =>
+							if count2 = 0 then 
+								count2 := n1_green + n1_yellow;
+								count1 := n1_green;
+								light1 <= green;
+								control <= lane1; 
+								light_lane2 <= "100";
+								light_lane1 <= "010";
+							end if;
+					end case;	
+				end if;
+			end if;
+		end if;
+	end process;
+end Behavioral;

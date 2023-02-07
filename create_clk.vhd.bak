@@ -1,0 +1,41 @@
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity create_clk is
+port(
+	clk	: in 	std_logic;			
+	clk_1s: out	std_logic := '1';
+	clk_baudrate_9600: out std_logic := '1'
+);
+end create_clk;
+
+architecture logic of create_clk is
+	signal temp_1s : std_logic := '1';
+	signal temp_baudrate_9600 : std_logic := '1';
+begin
+	process(clk)
+		variable count1 : natural range 0 to 50 := 0;
+	begin
+		if(rising_edge(clk)) then
+			count1 := count1 + 1;
+			if(count1 = 50) then
+				temp_1s <= not temp_1s;
+				count1 := 0;
+			end if;
+		end if;
+	end process;
+	clk_1s <= temp_1s;
+	
+	process(clk)
+		variable count2 : natural range 0 to 3 := 0;
+	begin
+		if(rising_edge(clk)) then
+			count2 := count2 + 1;
+			if(count2 = 2) then
+				temp_baudrate_9600 <= not temp_baudrate_9600;
+				count2 := 0;
+			end if;
+		end if;
+	end process;
+	clk_baudrate_9600 <= temp_baudrate_9600;
+end logic;

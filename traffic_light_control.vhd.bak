@@ -1,0 +1,66 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+use IEEE.numeric_std.all;
+entity traffic_light_control is
+port (	clk : in std_logic;
+			rst : in std_logic;
+			light_lane1: out std_logic_vector (2 downto 0) := "010"; -- red, green, yellow
+			light_lane2: out std_logic_vector (2 downto 0) := "100";
+--			nume_lane11, nume_lane21: out natural range 0 to 9999;
+			nume_lane1_bin, nume_lane2_bin: out std_logic
+		);
+end traffic_light_control;
+ 
+architecture Behavioral of traffic_light_control is
+	
+	component create_clk_1s port(
+		clk	: in 	std_logic;			
+		clk_1s: out	std_logic := '1';
+		clk_baudrate_9600: out std_logic := '1'
+	);
+	end component;
+	component main_control 
+	generic(
+			-- thời gian đèn đỏ lane1 = n2_green + n2_yellow
+		n1_green:	integer range 0 to 9990;-- thời gian đèn xanh lane1
+		n1_yellow:	integer range 0 to 9;	-- thời gian đèn vàng lane1	
+			-- thời gian đèn đỏ lane2 = n1_green + n1_yellow
+		n2_green:	integer range 0 to 9990;-- thời gian đèn xanh lane2
+		n2_yellow:	integer range 0 to 9		-- thời gian đèn vàng lane2
+	);
+	port (	clk_1s : in std_logic;
+				rst : in std_logic;
+				light_lane1: out std_logic_vector (2 downto 0) := "010"; -- red, green, yellow
+				light_lane2: out std_logic_vector (2 downto 0) := "100";
+				nume_lane1: out natural range 0 to 9999;
+				nume_lane2: out natural range 0 to 9999
+		);
+	end component;
+	
+	component TX
+	port ( 
+		clk_baudrate_9600 : in std_logic;
+		start: in std_logic;
+		data_in: in std_logic_vector(7 downto 0);
+		TX_out : out std_logic				
+	);
+	end component;
+	
+	signal	clk_1s, clk_baudrate_9600 : std_logic := '1';
+	signal nume_lane1_bin_temp, nume_lane2_bin_temp: std_logic_vector(7 downto 0);
+	signal	nume_lane1, nume_lane2: natural range 0 to 9999;
+	signal start: std_logic := '1';
+begin
+	
+	U0 : create_clk_1s port map(clk, clk_1s, clk_baudrate_9600);
+	U1 : main_control generic map (20 , 3, 10, 3)
+							port map(clk_1s, rst, light_lane1, light_lane2, nume_lane1, nume_lane2);
+	nume_lane1_bin_temp <= std_logic_vector(to_unsigned(nume_lane1, nume_lane1_bin_temp'length));
+	nume_lane2_bin_temp <= std_logic_vector(to_unsigned(nume_lane2, nume_lane2_bin_temp'length));
+--	nume_lane11 <= nume_lane1;
+--	nume_lane21 <= nume_lane2;
+	U2 : TX port map(clk_baudrate_9600, start, nume_lane1_bin_temp, nume_lane1_bin);
+	U3 : TX port map(clk_baudrate_9600, start, nume_lane2_bin_temp, nume_lane2_bin);
+end Behavioral;
